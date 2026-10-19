@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 // A standing visitor stays clear of the three walls and the bench seat.
 export const WALK_BOUNDS = { left: -1.72, right: 1.72, back: -.10, front: 1.54 };
+export const WALK_SPEED = 1.4;
 export function constrainPosition(position) {
   return new THREE.Vector3(
     THREE.MathUtils.clamp(position.x, WALK_BOUNDS.left, WALK_BOUNDS.right),
@@ -19,7 +20,7 @@ export function nearestAngle(from, to) {
 export function movementStep(position, forward, side, yaw, dt) {
   const input = new THREE.Vector2(side, forward);
   if (input.length() > 1) input.normalize();
-  const speed = 1.05 * Math.min(Math.max(dt, 0), .05);
+  const speed = WALK_SPEED * Math.min(Math.max(dt, 0), .05);
   const dx = (input.x * Math.cos(yaw) - input.y * Math.sin(yaw)) * speed;
   const dz = (-input.x * Math.sin(yaw) - input.y * Math.cos(yaw)) * speed;
   return constrainPosition(new THREE.Vector3(position.x + dx, position.y, position.z + dz));
@@ -66,18 +67,18 @@ export class Visitor {
     poster.group.updateWorldMatrix(true, false);
     const center = poster.group.getWorldPosition(new THREE.Vector3());
     const normal = new THREE.Vector3(0, 0, 1).transformDirection(poster.group.matrixWorld);
-    const fov = 51;
+    const fov = 62;
     const vertical = poster.height / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
     const horizontal = poster.width / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)) * this.camera.aspect);
-    const distance = Math.max(vertical, horizontal) * 1.13;
+    const distance = Math.max(vertical, horizontal) * 1.24;
     const targetPosition = center.clone().addScaledVector(normal, distance);
     // A close-up may lean toward a wall, but never enters its geometry.
-    targetPosition.y = center.y;
+    targetPosition.y = center.y - .16;
     const toward = center.clone().sub(targetPosition).normalize();
     const targetYaw = Math.atan2(-toward.x, -toward.z);
     const targetPitch = Math.asin(toward.y);
-    this.moveCamera({ position: targetPosition, yaw: targetYaw, pitch: targetPitch, fov }, 1050, () => {
-      this.setMode('reading');
+    this.moveCamera({ position: targetPosition, yaw: targetYaw, pitch: targetPitch, fov }, 720, () => {
+      this.setMode('taking');
       complete();
     });
   }
@@ -87,7 +88,7 @@ export class Visitor {
     const target = this.saved;
     this.saved = null;
     this.setMode('return');
-    this.moveCamera(target, 780, () => this.setMode('explore'));
+    this.moveCamera(target, 520, () => this.setMode('explore'));
   }
 
   goToPoster(poster) { this.onPoster(poster); }
@@ -129,7 +130,7 @@ export class Visitor {
       const forward = Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown')) - this.joystick.y;
       const side = Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')) + this.joystick.x;
       const turn = Number(this.keys.has('ArrowLeft')) - Number(this.keys.has('ArrowRight'));
-      if (turn) { this.yaw += turn * dt * 1.25; changed = true; }
+      if (turn) { this.yaw += turn * dt * 1.6; changed = true; }
       if (forward || side) {
         this.walkTarget = null;
         this.position.copy(movementStep(this.position, forward, side, this.yaw, dt));
@@ -138,9 +139,9 @@ export class Visitor {
         const difference = this.walkTarget.clone().sub(this.position);
         difference.y = 0;
         const distance = difference.length();
-        if (distance < .015) this.walkTarget = null;
+        if (distance < .006) { this.position.x=this.walkTarget.x;this.position.z=this.walkTarget.z;this.walkTarget = null;changed=true; }
         else {
-          this.position.addScaledVector(difference.normalize(), Math.min(distance, dt * .95));
+          this.position.addScaledVector(difference.normalize(), Math.min(distance, dt * WALK_SPEED));
           changed = true;
         }
       }
@@ -185,7 +186,7 @@ export class Visitor {
       const down = this.pointers.get(e.pointerId);
       if (!down || this.busy) return;
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
-      if (Math.hypot(dx, dy) > 6) down.moved = true;
+      if (Math.hypot(dx, dy) > (e.pointerType === 'touch' ? 6 : 3)) down.moved = true;
       if (!down.moved) return;
       moved();
       this.walkTarget = null;
@@ -194,7 +195,7 @@ export class Visitor {
         document.getElementById('touchMoveKnob').style.transform = `translate(${this.joystick.x * 25}px,${this.joystick.y * 25}px)`;
       } else {
         // Hand follows the scene directly; there is no post-release inertia.
-        const sensitivity = e.pointerType === 'touch' ? .005 : .0038;
+        const sensitivity = e.pointerType === 'touch' ? .0042 : .003;
         this.yaw = down.yaw - dx * sensitivity;
         this.pitch = THREE.MathUtils.clamp(down.pitch - dy * sensitivity * .78, -.95, .72);
         this.viewChanged = true;

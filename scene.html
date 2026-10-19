@@ -15,7 +15,7 @@
   <main id="experience" data-mode="loading">
     <canvas id="world" tabindex="0" aria-label="Остановка от первого лица. Потяни изображение, чтобы осмотреться. WASD — ходить, стрелки — идти и поворачиваться. Нажми на листовку, чтобы подойти и прочитать. На телефоне коснись пола, чтобы подойти."></canvas>
     <div class="atmosphere" aria-hidden="true"></div>
-    <p id="guide" class="guide" hidden>Потяни — оглядеться <span>·</span> Нажми на пол — подойти <span>·</span> На листок — прочитать</p>
+    <div id="guide" class="guide" hidden><p class="guide-title">Здесь можно ходить</p><p id="guideControls" class="guide-controls"><span class="guide-keys"><kbd>W</kbd><span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></span><span>Пройдись по остановке<br><small>или нажми на пол</small></span><span class="guide-divider"></span><span>Потяни — оглядеться<br><small>Нажми на листок — взять в руки</small></span></p></div>
     <nav class="keyboard-links" id="keyboardLinks" aria-label="Прочитать объявления с клавиатуры"></nav>
     <div id="touchMove" class="touch-move" hidden aria-hidden="true"><span id="touchMoveKnob"></span></div>
     <div id="loader" class="loader" role="status">
@@ -27,8 +27,11 @@
     <div id="error" class="error" hidden><h2>Остановка пока не загрузилась</h2><p>Попробуй обновить страницу или открой простую версию.</p><a href="/">Перейти к объявлениям ↗</a></div>
   </main>
   <dialog id="paperDialog" class="paper-dialog" aria-labelledby="sheetTitle">
-    <button class="close-paper" aria-label="Вернуться к остановке">×</button>
-    <div id="paperContent"></div>
+    <div id="heldPaper" class="held-paper">
+      <article id="paperSheet" class="paper-sheet" tabindex="0"><div id="paperContent"></div></article>
+      <button class="close-paper" aria-label="Вернуть листок на стену">×</button>
+    </div>
+    <canvas id="handsWorld" class="hands-world" aria-hidden="true"></canvas>
   </dialog>
   <div id="toast" class="toast" role="status"></div>
   <script type="module" src="/src/main.js"></script>

@@ -1,9 +1,9 @@
 {
   "project": "rollan.tech",
   "provider": "Tripo Studio",
-  "date": "2026-10-19",
+  "date": "2026-10-20",
   "creditsAtStart": 1640,
-  "lastConfirmedCredits": 1460,
+  "lastConfirmedCredits": 1400,
   "assets": [
     {
       "key": "shelter",
@@ -59,9 +59,28 @@
       "webTextures": "WebP, 1K",
       "cost": 55,
       "usedInCurrentScene": true
+    },
+    {
+      "key": "native-hand",
+      "purpose": "Animated first-person paper pickup, mirrored into two hands",
+      "taskId": "2ad9bf68-3691-4625-a192-205796e15136",
+      "url": "https://studio.tripo3d.ai/ru/workspace/generate/a-single-realistic-left-human-hand-and-forearm-first-person-game-asse-2ad9bf68-3691-4625-a192-205796e15136",
+      "cost": 55,
+      "retopologyCost": 5,
+      "generationModel": "H3.1",
+      "status": "downloaded_and_optimized",
+      "downloaded": true,
+      "qualityApproved": false,
+      "qualityNotes": "Custom 22-bone runtime rig per hand, preserved Tripo PBR surface. Owner visual approval pending.",
+      "file": "assets/models/web/hand.glb",
+      "bytes": 2130428,
+      "triangles": 20000,
+      "webTextures": "WebP, 2K, quality 94",
+      "usedInCurrentScene": true,
+      "promptRecord": "docs/TRIPO_HANDS.md"
     }
   ],
-  "creditsSpent": 180,
+  "creditsSpent": 240,
   "environment": {
     "provider": "Built-in image_gen.imagegen",
     "file": "assets/environment/pavlodar-city-cutout.webp",

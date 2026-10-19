@@ -4,14 +4,15 @@ import { createFlyers, animateFlyers } from './flyers.js';
 import { Visitor, constrainPosition, floorHeight } from './navigation.js';
 import { SECTIONS } from './sections.js';
 import { validateConfig } from './config.js';
+import { PaperReader } from './reader.js';
 import './style.css';
 
 const $=id=>document.getElementById(id);
 const canvas=$('world');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-let renderer,scene,camera,world,visitor,posters=[];
+let renderer,scene,camera,world,visitor,reader,posters=[];
 let loaded=false,lastTime=performance.now(),dirty=true,hovered=null;
-let mouse=null,needPick=false,guideTimer,toastTimer,activePoster=null;
+let mouse=null,needPick=false,guideTimer,toastTimer,activePoster=null,guideShownAt=0;
 let renderedFrames=0,lastRenderAt=0,frameMs=16.7;
 const raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2();
 raycaster.firstHitOnly=true;
@@ -20,7 +21,8 @@ function toast(text) {
   $('toast').textContent=text;$('toast').classList.add('show');
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2700);
 }
-function dismissGuide() {
+function dismissGuide(force=false) {
+  if(!force&&performance.now()-guideShownAt<4500)return;
   clearTimeout(guideTimer);$('guide').classList.add('dismissed');
 }
 function pick(x,y) {
@@ -44,7 +46,7 @@ function paperBounds(poster) {
   return {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};
 }
 function showReader(poster) {
-  if(visitor.mode!=='reading')return;
+  if(visitor.mode!=='taking')return;
   const dialog=$('paperDialog'),content=$('paperContent'),p=poster.p;
   content.replaceChildren();dialog.style.setProperty('--reader-paper',p.color);
   if(p.link) {
@@ -53,35 +55,25 @@ function showReader(poster) {
     const link=document.createElement('a');link.href=p.link;link.target='_blank';link.rel='noopener';link.textContent=p.cta;
     content.append(h,paragraph,link);
   } else content.innerHTML=SECTIONS[p.section].html;
-  const from=paperBounds(poster);
-  dialog.showModal();
-  const to=dialog.getBoundingClientRect();
-  if(!reduced.matches)dialog.animate([
-    {opacity:.25,transform:`translate(${from.x+from.width/2-to.x-to.width/2}px,${from.y+from.height/2-to.y-to.height/2}px) scale(${Math.min(1.2,from.width/to.width)},${Math.min(1.2,from.height/to.height)}) rotate(-.8deg)`},
-    {opacity:1,transform:'translate(0,0) scale(1) rotate(0deg)'}
-  ],{duration:470,easing:'cubic-bezier(.16,1,.3,1)'});
+  reader.open(poster);
   $('experience').dataset.reading=p.id;
 }
 function approach(poster) {
   if(!loaded||visitor.busy)return;
   activePoster=poster;
   for(const item of posters)item.targetHover=item===poster?1:0;
-  dismissGuide();canvas.style.cursor='default';
+  dismissGuide(true);canvas.style.cursor='default';
   visitor.approach(poster,()=>showReader(poster));
 }
 function bindReader() {
-  const dialog=$('paperDialog');
-  document.querySelector('.close-paper').addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>{
-    delete $('experience').dataset.reading;
-    if(activePoster)activePoster.targetHover=0;
-    visitor.returnFromPoster();
-    activePoster=null;dirty=true;
-  });
-  dialog.addEventListener('click',event=>{
-    if(event.target!==dialog)return;
-    const bounds=dialog.getBoundingClientRect();
-    if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)dialog.close();
+  reader=new PaperReader({
+    dialog:$('paperDialog'),reduced,wallBounds:paperBounds,
+    invalidate:()=>{dirty=true;},onMode:mode=>visitor.setMode(mode),
+    onReturn:()=>{
+      delete $('experience').dataset.reading;
+      if(activePoster)activePoster.targetHover=0;
+      visitor.returnFromPoster();activePoster=null;dirty=true;
+    }
   });
 }
 function keyboardLinks() {
@@ -96,12 +88,14 @@ function resize() {
   visitor?.clearPointers();
   renderer.setSize(innerWidth,innerHeight);
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();dirty=true;needPick=true;
+  reader?.resize();
 }
 function frame(time) {
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(time-lastTime)/1000);lastTime=time;
   if(document.hidden||!visitor)return;
   const moved=visitor.update(time,dt);
+  reader?.update(time);
   if(moved){dirty=true;needPick=true;}
   if(loaded&&needPick&&mouse&&!visitor.down&&!visitor.busy){
     const hit=pick(mouse.x,mouse.y);hovered=hit?.poster||null;
@@ -136,7 +130,7 @@ async function init() {
       pick,onPoster:approach,onCat:()=>toast('Тсс… он на перерыве.'),onInteraction:dismissGuide,
       onMode:mode=>{ $('experience').dataset.mode=mode;dirty=true; },reduced
     });
-    resize();requestAnimationFrame(frame);
+    resize();bindReader();requestAnimationFrame(frame);
     const fonts=Promise.all([
       document.fonts.load('400 24px "Russo One"','Роллан разработчик ABC'),
       document.fonts.load('700 24px "Golos Text"','Роллан разработчик ABC'),
@@ -144,16 +138,16 @@ async function init() {
       document.fonts.load('700 24px "Caveat"','Роллан разработчик ABC')
     ]).catch(()=>{});
     world=await createWorld(renderer,scene,config,value=>{$('loadProgress').style.width=`${value}%`;});
-    await fonts;
+    await Promise.all([fonts,reader.ready]);
     posters=createFlyers(scene,world.shelter,config,renderer.capabilities.getMaxAnisotropy());
     const marker=new THREE.Mesh(new THREE.RingGeometry(.085,.095,32),new THREE.MeshBasicMaterial({color:'#e2cc8e',transparent:true,opacity:.45,depthWrite:false}));
     marker.rotation.x=-Math.PI/2;marker.visible=false;scene.add(marker);world.walkMarker=marker;
     $('experience').dataset.catSupport=world.catSupport.toFixed(4);
     $('experience').dataset.catBase=world.catBaseY.toFixed(4);
     $('loadProgress').style.width='100%';loaded=true;renderer.shadowMap.needsUpdate=true;dirty=true;
-    keyboardLinks();bindReader();$('loader').hidden=true;$('experience').dataset.loaded='true';visitor.setMode('explore');
-    if(matchMedia('(pointer:coarse)').matches)$('guide').textContent='Потяни, чтобы оглядеться · Коснись пола, чтобы подойти · Нажми на листок';
-    $('guide').hidden=false;guideTimer=setTimeout(dismissGuide,9000);
+    keyboardLinks();$('loader').hidden=true;$('experience').dataset.loaded='true';visitor.setMode('explore');
+    if(matchMedia('(pointer:coarse)').matches)$('guideControls').innerHTML='<span>Коснись пола — подойти<br><small>Потяни пальцем — оглядеться</small></span><span class="guide-divider"></span><span>Нажми на листок<br><small>чтобы взять его в руки</small></span>';
+    guideShownAt=performance.now();$('guide').classList.remove('dismissed');$('guide').hidden=false;guideTimer=setTimeout(()=>dismissGuide(true),10000);
     canvas.addEventListener('pointermove',event=>{if(event.pointerType!=='touch'){mouse={x:event.clientX,y:event.clientY};needPick=true;}});
     canvas.addEventListener('pointerleave',()=>{mouse=null;for(const p of posters)p.targetHover=0;});
     window.addEventListener('resize',resize);document.addEventListener('visibilitychange',()=>{lastTime=performance.now();dirty=true;});
