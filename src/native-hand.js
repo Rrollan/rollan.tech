@@ -4,10 +4,10 @@ import * as THREE from 'three';
 // All vertices, UVs, normals, nails, sleeve folds and PBR maps remain that asset.
 const wrist = new THREE.Vector3(-.06, .445, .02);
 const chains = [
-  { name:'index', points:[[-.14,.72,-.13],[-.15,.84,-.195],[-.155,.91,-.175],[-.16,.965,-.15]], bend:[.72,.6,.3] },
-  { name:'middle', points:[[-.22,.69,-.10],[-.255,.795,-.13],[-.275,.86,-.08],[-.28,.90,-.06]], bend:[.68,.55,.28] },
-  { name:'ring', points:[[-.275,.66,-.075],[-.30,.73,-.12],[-.31,.79,-.08],[-.30,.805,-.03]], bend:[.2,.16,.1] },
-  { name:'pinky', points:[[-.30,.645,-.055],[-.34,.685,-.09],[-.35,.73,-.03],[-.335,.75,.02]], bend:[.18,.14,.1] },
+  { name:'index', points:[[-.14,.72,-.13],[-.15,.84,-.195],[-.155,.91,-.175],[-.16,.965,-.15]], bend:[.28,.32,.18] },
+  { name:'middle', points:[[-.22,.69,-.10],[-.255,.795,-.13],[-.275,.86,-.08],[-.28,.90,-.06]], bend:[.34,.32,.14] },
+  { name:'ring', points:[[-.275,.66,-.075],[-.30,.73,-.12],[-.31,.79,-.08],[-.30,.805,-.03]], bend:[.25,.22,.1] },
+  { name:'pinky', points:[[-.30,.645,-.055],[-.34,.685,-.09],[-.35,.73,-.03],[-.335,.75,.02]], bend:[.22,.18,.09] },
   { name:'thumb', points:[[-.015,.57,-.015],[.025,.67,-.04],[.02,.77,-.10],[0,.85,-.09]], bend:[0,0,0] }
 ];
 
@@ -46,6 +46,13 @@ export function buildNativeHand(source, side) {
     const sourceY=new Float32Array(position.count);
     for(let i=0;i<position.count;i++)sourceY[i]=position.getY(i);
     geometry.applyMatrix4(transform);
+    // Continue the existing textured sleeve below the first-person crop.
+    // Its exported forearm ends halfway down; exposing that cap looks detached.
+    const sleeveDirection=new THREE.Vector3(0,-1,0).transformDirection(transform);
+    for(let i=0;i<position.count;i++) {
+      const extension=.95*(1-THREE.MathUtils.smoothstep(sourceY[i],.03,.28));
+      if(extension){point.fromBufferAttribute(position,i).addScaledVector(sleeveDirection,extension);position.setXYZ(i,point.x,point.y,point.z);}
+    }
     const indices=new Uint16Array(position.count*4),weights=new Float32Array(position.count*4);
     for(let i=0;i<position.count;i++) {
       point.fromBufferAttribute(position,i);
@@ -86,5 +93,9 @@ export function buildNativeHand(source, side) {
       else bone.rotation.set(-(finger.chain.bend[i]??0)*amount,0,0);
     }
   }
-  return {object,grip,skeleton};
+  const contact = new THREE.Object3D();
+  contact.name = 'thumb-pad-contact';
+  fingers.find(finger=>finger.chain.name==='thumb').bones[3].add(contact);
+  contact.position.set(0,-.006,-.003);
+  return {object,grip,skeleton,contact};
 }

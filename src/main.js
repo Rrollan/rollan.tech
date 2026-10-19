@@ -2,15 +2,16 @@ import * as THREE from 'three';
 import { createWorld } from './world.js';
 import { createFlyers, animateFlyers } from './flyers.js';
 import { Visitor, constrainPosition, floorHeight } from './navigation.js';
-import { SECTIONS } from './sections.js';
+import { mountPaper } from './paper.js';
 import { validateConfig } from './config.js';
 import { PaperReader } from './reader.js';
+import { Companion } from './companion.js';
 import './style.css';
 
 const $=id=>document.getElementById(id);
 const canvas=$('world');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-let renderer,scene,camera,world,visitor,reader,posters=[];
+let renderer,scene,camera,world,visitor,reader,companion,posters=[];
 let loaded=false,lastTime=performance.now(),dirty=true,hovered=null;
 let mouse=null,needPick=false,guideTimer,toastTimer,activePoster=null,guideShownAt=0;
 let renderedFrames=0,lastRenderAt=0,frameMs=16.7;
@@ -38,23 +39,21 @@ function pick(x,y) {
   if(hit.object.userData.floor||(hit.point.y<.4&&hit.face.normal.y>.6))return {floor:true,point:hit.point};
   return null;
 }
-function paperBounds(poster) {
-  const box=new THREE.Box3().setFromObject(poster.mesh);
-  const points=[];
-  for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])points.push(new THREE.Vector3(x,y,z).project(camera));
-  const xs=points.map(p=>(p.x*.5+.5)*innerWidth),ys=points.map(p=>(-.5*p.y+.5)*innerHeight);
-  return {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};
+function paperQuad(poster) {
+  poster.mesh.updateWorldMatrix(true,false);
+  const positions=poster.geometry.attributes.position;
+  return [0,12,positions.count-13,positions.count-1].map(index=>{
+    const point=new THREE.Vector3().fromBufferAttribute(positions,index).applyMatrix4(poster.mesh.matrixWorld).project(camera);
+    return {x:(point.x*.5+.5)*innerWidth,y:(-.5*point.y+.5)*innerHeight};
+  });
 }
 function showReader(poster) {
   if(visitor.mode!=='taking')return;
   const dialog=$('paperDialog'),content=$('paperContent'),p=poster.p;
-  content.replaceChildren();dialog.style.setProperty('--reader-paper',p.color);
-  if(p.link) {
-    const h=document.createElement('h3');h.id='sheetTitle';h.textContent=p.title.replaceAll('\n',' ');
-    const paragraph=document.createElement('p');paragraph.textContent=p.text;
-    const link=document.createElement('a');link.href=p.link;link.target='_blank';link.rel='noopener';link.textContent=p.cta;
-    content.append(h,paragraph,link);
-  } else content.innerHTML=SECTIONS[p.section].html;
+  dialog.style.setProperty('--reader-paper',p.color);
+  dialog.style.setProperty('--paper-front',`url("${poster.paper.frontURL}")`);
+  dialog.dataset.paperFace=p.id;
+  mountPaper(content,poster.paper,p.title);
   reader.open(poster);
   $('experience').dataset.reading=p.id;
 }
@@ -67,7 +66,7 @@ function approach(poster) {
 }
 function bindReader() {
   reader=new PaperReader({
-    dialog:$('paperDialog'),reduced,wallBounds:paperBounds,
+    dialog:$('paperDialog'),reduced,wallQuad:paperQuad,
     invalidate:()=>{dirty=true;},onMode:mode=>visitor.setMode(mode),
     onReturn:()=>{
       delete $('experience').dataset.reading;
@@ -83,6 +82,8 @@ function keyboardLinks() {
     button.addEventListener('click',()=>approach(poster));
     nav.append(button);
   }
+  const catButton=document.createElement('button');catButton.textContent='Погладить кота';
+  catButton.addEventListener('click',()=>{dismissGuide(true);companion.interact();});nav.append(catButton);
 }
 function resize() {
   visitor?.clearPointers();
@@ -96,12 +97,18 @@ function frame(time) {
   if(document.hidden||!visitor)return;
   const moved=visitor.update(time,dt);
   reader?.update(time);
+  if(companion?.update(time))dirty=true;
   if(moved){dirty=true;needPick=true;}
   if(loaded&&needPick&&mouse&&!visitor.down&&!visitor.busy){
     const hit=pick(mouse.x,mouse.y);hovered=hit?.poster||null;
     for(const poster of posters)poster.targetHover=poster===hovered?1:0;
-    canvas.style.cursor=hovered||hit?.cat?'pointer':hit?.floor?'crosshair':'grab';needPick=false;
+    canvas.style.cursor=hovered||hit?.cat?'pointer':hit?.floor?'crosshair':'grab';
+    const cue=$('worldCue');
+    cue.classList.toggle('visible',!!hit?.cat);
+    if(hit?.cat){cue.textContent='Погладить';cue.style.left=`${mouse.x}px`;cue.style.top=`${mouse.y-22}px`;}
+    needPick=false;
   }
+  if(visitor.busy)$('worldCue').classList.remove('visible');
   if(loaded&&animateFlyers(posters,dt,time,reduced.matches))dirty=true;
   if(visitor.walkTarget&&world?.walkMarker){
     const marker=world.walkMarker;marker.visible=true;
@@ -127,7 +134,7 @@ async function init() {
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.04,350);
     visitor=new Visitor(camera,canvas,{
-      pick,onPoster:approach,onCat:()=>toast('Тсс… он на перерыве.'),onInteraction:dismissGuide,
+      pick,onPoster:approach,onCat:()=>{dismissGuide(true);companion?.interact();},onInteraction:dismissGuide,
       onMode:mode=>{ $('experience').dataset.mode=mode;dirty=true; },reduced
     });
     resize();bindReader();requestAnimationFrame(frame);
@@ -140,6 +147,8 @@ async function init() {
     world=await createWorld(renderer,scene,config,value=>{$('loadProgress').style.width=`${value}%`;});
     await Promise.all([fonts,reader.ready]);
     posters=createFlyers(scene,world.shelter,config,renderer.capabilities.getMaxAnisotropy());
+    companion=new Companion({cat:world.cat,visitor,reader,camera,host:$('experience'),reduced,invalidate:()=>{dirty=true;},onMessage:toast});
+    visitor.onCancelCat=()=>companion.finish(true);
     const marker=new THREE.Mesh(new THREE.RingGeometry(.085,.095,32),new THREE.MeshBasicMaterial({color:'#e2cc8e',transparent:true,opacity:.45,depthWrite:false}));
     marker.rotation.x=-Math.PI/2;marker.visible=false;scene.add(marker);world.walkMarker=marker;
     $('experience').dataset.catSupport=world.catSupport.toFixed(4);
@@ -149,7 +158,7 @@ async function init() {
     if(matchMedia('(pointer:coarse)').matches)$('guideControls').innerHTML='<span>Коснись пола — подойти<br><small>Потяни пальцем — оглядеться</small></span><span class="guide-divider"></span><span>Нажми на листок<br><small>чтобы взять его в руки</small></span>';
     guideShownAt=performance.now();$('guide').classList.remove('dismissed');$('guide').hidden=false;guideTimer=setTimeout(()=>dismissGuide(true),10000);
     canvas.addEventListener('pointermove',event=>{if(event.pointerType!=='touch'){mouse={x:event.clientX,y:event.clientY};needPick=true;}});
-    canvas.addEventListener('pointerleave',()=>{mouse=null;for(const p of posters)p.targetHover=0;});
+    canvas.addEventListener('pointerleave',()=>{mouse=null;$('worldCue').classList.remove('visible');for(const p of posters)p.targetHover=0;});
     window.addEventListener('resize',resize);document.addEventListener('visibilitychange',()=>{lastTime=performance.now();dirty=true;});
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();$('error').hidden=false;});
   } catch(error) {

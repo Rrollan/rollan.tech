@@ -83,6 +83,18 @@ export class Visitor {
     });
   }
 
+  focusOnCat(cat, complete) {
+    if (this.busy) return;
+    this.saved=this.snapshot();this.walkTarget=null;this.keys.clear();this.clearPointers();
+    this.setMode('cat-approach');
+    const target=cat.position.clone().add(new THREE.Vector3(-.15,.54,.92));
+    const lookAt=cat.position.clone().add(new THREE.Vector3(-.05,.16,0));
+    const direction=lookAt.sub(target).normalize();
+    this.moveCamera({position:target,yaw:Math.atan2(-direction.x,-direction.z),pitch:Math.asin(direction.y),fov:58},680,()=>{
+      this.setMode('petting');complete();
+    });
+  }
+
   returnFromPoster() {
     if (!this.saved) return;
     const target = this.saved;
@@ -158,6 +170,7 @@ export class Visitor {
   bind() {
     const moved = () => this.onInteraction();
     const keyDown = e => {
+      if (e.key === 'Escape' && ['cat-approach','petting'].includes(this.mode)) { this.onCancelCat?.(); return; }
       if (e.key === 'Escape' && this.mode === 'approach') { this.returnFromPoster(); return; }
       if (this.busy || e.altKey || e.ctrlKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
       if (/^(Key[WASD]|Arrow(Left|Right|Up|Down))$/.test(e.code)) {

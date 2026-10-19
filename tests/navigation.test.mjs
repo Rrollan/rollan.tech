@@ -80,3 +80,19 @@ test('walking stops on release and approaching a flyer clears held movement', t 
   assert.equal(visitor.mode,'explore');
   assert.ok(visitor.position.distanceTo(saved.position)<1e-8);
 });
+
+test('cat interaction clears movement, supports Escape and restores the previous viewpoint',t=>{
+  const {visitor,documentHandlers}=makeVisitor(t);
+  const saved=visitor.snapshot();visitor.keys.add('KeyW');visitor.walkTarget=new Vector3(1,1.8,1);
+  let reached=false,cancelled=false;
+  visitor.focusOnCat({position:new Vector3(1.33,.79,-.72)},()=>{reached=true;});
+  visitor.onCancelCat=()=>{cancelled=true;visitor.returnFromPoster();};
+  assert.equal(visitor.mode,'cat-approach');assert.equal(visitor.keys.size,0);assert.equal(visitor.walkTarget,null);
+  visitor.update(visitor.motion.start+visitor.motion.duration+16,1/60);
+  assert.equal(reached,true);assert.equal(visitor.mode,'petting');
+  documentHandlers.get('keydown')({key:'Escape'});
+  assert.equal(cancelled,true);
+  visitor.update(visitor.motion.start+visitor.motion.duration+16,1/60);
+  assert.equal(visitor.mode,'explore');assert.ok(visitor.position.distanceTo(saved.position)<1e-8);
+  assert.equal(visitor.yaw,saved.yaw);assert.equal(visitor.pitch,saved.pitch);assert.equal(visitor.fov,saved.fov);
+});

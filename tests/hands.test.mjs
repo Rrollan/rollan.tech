@@ -31,7 +31,7 @@ test('the Tripo hand stays within its web geometry budget and animates through i
     hand.grip(1);hand.object.updateMatrixWorld(true);
     assert.ok(tip.getWorldPosition(new THREE.Vector3()).distanceTo(open)>.025);
     mesh.computeBoundingBox();
-    assert.ok(mesh.boundingBox.getSize(new THREE.Vector3()).toArray().every(v=>Number.isFinite(v)&&v>0&&v<.6));
+    assert.ok(mesh.boundingBox.getSize(new THREE.Vector3()).toArray().every(v=>Number.isFinite(v)&&v>0&&v<1.7));
     hand.grip(0);hand.object.updateMatrixWorld(true);
     assert.ok(tip.getWorldPosition(new THREE.Vector3()).distanceTo(open)<1e-6);
   }
