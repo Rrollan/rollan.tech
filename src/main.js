@@ -10,9 +10,11 @@ const $=id=>document.getElementById(id);
 const canvas=$('world');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 let renderer,scene,camera,world,visitor,posters=[];
-let loaded=false,lastTime=performance.now(),lastRender=0,dirty=true,hovered=null;
+let loaded=false,lastTime=performance.now(),dirty=true,hovered=null;
 let mouse=null,needPick=false,guideTimer,toastTimer,activePoster=null;
+let renderedFrames=0,lastRenderAt=0,frameMs=16.7;
 const raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2();
+raycaster.firstHitOnly=true;
 
 function toast(text) {
   $('toast').textContent=text;$('toast').classList.add('show');
@@ -91,6 +93,7 @@ function keyboardLinks() {
   }
 }
 function resize() {
+  visitor?.clearPointers();
   renderer.setSize(innerWidth,innerHeight);
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();dirty=true;needPick=true;
 }
@@ -105,14 +108,19 @@ function frame(time) {
     for(const poster of posters)poster.targetHover=poster===hovered?1:0;
     canvas.style.cursor=hovered||hit?.cat?'pointer':hit?.floor?'crosshair':'grab';needPick=false;
   }
-  if(loaded&&animateFlyers(posters,dt,time,reduced.matches)){dirty=true;renderer.shadowMap.needsUpdate=true;}
+  if(loaded&&animateFlyers(posters,dt,time,reduced.matches))dirty=true;
   if(visitor.walkTarget&&world?.walkMarker){
     const marker=world.walkMarker;marker.visible=true;
     const target=constrainPosition(visitor.walkTarget);marker.position.set(target.x,floorHeight(target.z)+.007,target.z);
     marker.material.opacity=.3+.12*Math.sin(time*.004);dirty=true;
   }else if(world?.walkMarker?.visible){world.walkMarker.visible=false;dirty=true;}
-  if(!dirty&&time-lastRender<800)return;
-  renderer.render(scene,camera);lastRender=time;dirty=false;
+  if(!dirty)return;
+  renderer.render(scene,camera);dirty=false;
+  const interval=time-lastRenderAt;
+  if(interval>0&&interval<200)frameMs=frameMs*.85+interval*.15;
+  lastRenderAt=time;
+  $('experience').dataset.renderedFrames=String(++renderedFrames);
+  $('experience').dataset.frameMs=frameMs.toFixed(1);
   $('experience').dataset.camera=`${visitor.position.x.toFixed(3)},${visitor.position.y.toFixed(3)},${visitor.position.z.toFixed(3)}`;
 }
 async function init() {
@@ -121,7 +129,7 @@ async function init() {
     // Public visits always use published data. The former browser-local editor is gone.
     const config=validateConfig(await response.json());
     renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=config.lighting.exposure;
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=config.lighting.exposure;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.04,350);
     visitor=new Visitor(camera,canvas,{

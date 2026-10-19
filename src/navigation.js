@@ -39,6 +39,7 @@ export class Visitor {
     this.motion = null;
     this.saved = null;
     this.joystick = new THREE.Vector2();
+    this.viewChanged = true;
     this.bind();
     this.syncCamera();
   }
@@ -108,7 +109,8 @@ export class Visitor {
   }
 
   update(time, dt) {
-    let changed = false;
+    let changed = this.viewChanged;
+    this.viewChanged = false;
     if (this.motion) {
       const motion = this.motion;
       const t = motion.duration ? Math.min(1, (time - motion.start) / motion.duration) : 1;
@@ -195,6 +197,7 @@ export class Visitor {
         const sensitivity = e.pointerType === 'touch' ? .005 : .0038;
         this.yaw = down.yaw - dx * sensitivity;
         this.pitch = THREE.MathUtils.clamp(down.pitch - dy * sensitivity * .78, -.95, .72);
+        this.viewChanged = true;
         this.syncCamera();
       }
     });

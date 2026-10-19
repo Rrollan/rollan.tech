@@ -64,9 +64,11 @@
   "creditsSpent": 180,
   "environment": {
     "provider": "Built-in image_gen.imagegen",
-    "file": "assets/environment/pavlodar-evening-v2.webp",
-    "bytes": 581526,
+    "file": "assets/environment/pavlodar-city-cutout.webp",
+    "bytes": 555916,
     "promptRecord": "docs/ART_DIRECTION.md",
-    "usedInCurrentScene": true
+    "usedInCurrentScene": true,
+    "sourceArtwork": "assets/environment/pavlodar-evening-v2.webp",
+    "layout": "Flat street panels, original 3:1 image proportions; independent sky"
   }
 }

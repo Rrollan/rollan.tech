@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
+import { createCityBackdrop } from './environment.js';
 
 const shelterURL = new URL('../assets/models/web/shelter.glb', import.meta.url).href;
 const catURL = new URL('../assets/models/web/cat.glb', import.meta.url).href;
-const cityURL = new URL('../assets/environment/pavlodar-evening-v2.webp', import.meta.url).href;
+const cityURL = new URL('../assets/environment/pavlodar-city-cutout.webp', import.meta.url).href;
 
 export function normalizeModel(root, dimensions) {
   const bounds = new THREE.Box3().setFromObject(root);
@@ -20,6 +22,8 @@ export function normalizeModel(root, dimensions) {
     object.castShadow = object.receiveShadow = true;
     object.material.envMapIntensity = .35;
     object.material.normalScale?.set(.5, .5);
+    object.geometry.boundsTree ??= new MeshBVH(object.geometry);
+    object.raycast = acceleratedRaycast;
   });
   return group;
 }
@@ -56,7 +60,7 @@ function concreteTexture() {
 function makeBottle(color, labelText, angle) {
   const group = new THREE.Group();
   const points = [[0,0],[.027,0],[.033,.008],[.034,.19],[.03,.215],[.014,.246],[.013,.30],[.016,.303],[.016,.312],[.011,.312]].map(([x,y]) => new THREE.Vector2(x,y-.156));
-  const glass = new THREE.MeshPhysicalMaterial({ color, roughness: .19, metalness: .12, transparent: true, opacity: .83, transmission: .14, thickness: .006, envMapIntensity: 1 });
+  const glass = new THREE.MeshStandardMaterial({ color, roughness: .2, metalness: .25, transparent: true, opacity: .85, envMapIntensity: 1 });
   const body = new THREE.Mesh(new THREE.LatheGeometry(points, 20), glass);
   body.castShadow = true; group.add(body);
   const paper = document.createElement('canvas'); paper.width = 256; paper.height = 128;
@@ -89,11 +93,12 @@ export async function createWorld(renderer, scene, config, progress) {
   sky.material.uniforms.sunPosition.value.set(-.86,.13,.5).normalize();
   const pmrem=new THREE.PMREMGenerator(renderer);
   const envScene=new THREE.Scene(); envScene.add(sky);
-  const env=pmrem.fromScene(envScene,.05,.1,400);scene.environment=env.texture;scene.environmentIntensity=.38;pmrem.dispose();
-  scene.add(sky);
+  const env=pmrem.fromScene(envScene,0,.1,400);scene.environment=env.texture;scene.environmentIntensity=.38;pmrem.dispose();
+  scene.background=env.texture;
+  sky.geometry.dispose();sky.material.dispose();
   scene.add(new THREE.HemisphereLight('#e1d6b7','#79694e',1.65));
   const sun=new THREE.DirectionalLight('#ffd196',config.lighting.sunPower);
-  sun.position.set(-9,4.5,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+  sun.position.set(-9,4.5,7);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
   Object.assign(sun.shadow.camera,{left:-5,right:5,top:5,bottom:-5,near:.5,far:28});
   sun.shadow.normalBias=.012;sun.shadow.bias=-.00015;scene.add(sun);
 
@@ -104,6 +109,10 @@ export async function createWorld(renderer, scene, config, progress) {
   road.rotation.x=-Math.PI/2;road.position.set(0,.002,8.5);road.receiveShadow=true;road.userData.floor=true;scene.add(road);
   const curb=new THREE.Mesh(new THREE.BoxGeometry(120,.12,.18),new THREE.MeshStandardMaterial({color:'#a49b86',roughness:1}));
   curb.position.set(0,.025,5.14);curb.receiveShadow=true;scene.add(curb);
+  const farCurb=curb.clone();farCurb.position.z=11.86;scene.add(farCurb);
+  const yardMap=ground.material.map.clone();yardMap.repeat.set(45,4);
+  const yard=new THREE.Mesh(new THREE.PlaneGeometry(160,10.6),new THREE.MeshStandardMaterial({map:yardMap,color:'#7c8a51',roughness:1}));
+  yard.rotation.x=-Math.PI/2;yard.position.set(0,.012,18.7);scene.add(yard);
   const roadPaint=new THREE.MeshStandardMaterial({color:'#c2baa1',roughness:1});
   for(let x=-55;x<56;x+=5){
     const dash=new THREE.Mesh(new THREE.PlaneGeometry(2.3,.075),roadPaint);
@@ -118,19 +127,8 @@ export async function createWorld(renderer, scene, config, progress) {
   ]);
   progress(68);
   const shelter=normalizeModel(shelterData.scene,[5.3,3.2,2.65]);shelter.name='shelter';scene.add(shelter);shelter.updateWorldMatrix(true,true);
-  panorama.colorSpace=THREE.SRGBColorSpace;panorama.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
-  const cityGeometry=new THREE.CylinderGeometry(42,42,90,96,1,true);
-  // Continue the border sky/ground beyond the artwork without stretching the buildings.
-  const cityUV=cityGeometry.attributes.uv;
-  for(let i=0;i<cityUV.count;i++)cityUV.setY(i,(cityUV.getY(i)-.5)*3+.5);
-  const cityMaterial=new THREE.MeshBasicMaterial({map:panorama,side:THREE.BackSide,fog:false,toneMapped:false,transparent:true,depthWrite:false});
-  cityMaterial.onBeforeCompile=shader=>{
-    shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>',
-      'diffuseColor.a *= 1.0 - smoothstep(0.88, 1.0, vMapUv.y);\n#include <alphatest_fragment>');
-  };
-  const city=new THREE.Mesh(cityGeometry,cityMaterial);
-  // The panorama join faces the opaque back wall, outside the visitor's sightline.
-  city.position.y=7.2;city.rotation.y=Math.PI;scene.add(city);
+  panorama.colorSpace=THREE.SRGBColorSpace;panorama.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  scene.add(createCityBackdrop(panorama));
   // A tiny overlap covers the distant ground seam, while foreground geometry remains walkable.
   scene.fog=new THREE.FogExp2('#afa28b',.006);
   const cat=normalizeModel(catData.scene,.43);
