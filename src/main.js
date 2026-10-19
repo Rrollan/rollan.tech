@@ -130,10 +130,10 @@ async function init() {
     });
     resize();requestAnimationFrame(frame);
     const fonts=Promise.all([
-      document.fonts.load('400 24px "Russo One"'),
-      document.fonts.load('700 24px "Golos Text"'),
-      document.fonts.load('400 24px "Golos Text"'),
-      document.fonts.load('700 24px "Caveat"')
+      document.fonts.load('400 24px "Russo One"','Роллан разработчик ABC'),
+      document.fonts.load('700 24px "Golos Text"','Роллан разработчик ABC'),
+      document.fonts.load('400 24px "Golos Text"','Роллан разработчик ABC'),
+      document.fonts.load('700 24px "Caveat"','Роллан разработчик ABC')
     ]).catch(()=>{});
     world=await createWorld(renderer,scene,config,value=>{$('loadProgress').style.width=`${value}%`;});
     await fonts;
