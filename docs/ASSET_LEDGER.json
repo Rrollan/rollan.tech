@@ -1,0 +1,62 @@
+{
+  "project": "rollan.tech",
+  "provider": "Tripo Studio",
+  "date": "2026-10-19",
+  "creditsAtStart": 1640,
+  "lastConfirmedCredits": 1460,
+  "assets": [
+    {
+      "key": "shelter",
+      "purpose": "First-person interior, three editable poster walls",
+      "taskId": "f316dbfb-eb17-480c-a462-2ea113b1a64d",
+      "url": "https://studio.tripo3d.ai/3d-model/life-size-realistic-soviet-era-bus-stop-shelter-from-a-quiet-city-in-k-f316dbfb-eb17-480c-a462-2ea113b1a64d",
+      "cost": 55,
+      "generationModel": "H3.1",
+      "texture": "4K PBR",
+      "status": "downloaded_and_optimized",
+      "downloaded": true,
+      "qualityApproved": false,
+      "qualityNotes": "Integrated into first-person preview; final visual approval pending.",
+      "file": "assets/models/web/shelter.glb",
+      "bytes": 3527012,
+      "triangles": 80000,
+      "retopologyCost": 5,
+      "webTextures": "WebP, 2K"
+    },
+    {
+      "key": "apartment-block",
+      "purpose": "Background residential neighborhood",
+      "taskId": "a9fc9eaa-b631-4077-85ca-f009e85a2f2f",
+      "url": "https://studio.tripo3d.ai/workspace/generate/a9fc9eaa-b631-4077-85ca-f009e85a2f2f",
+      "cost": 55,
+      "generationModel": "H3.1",
+      "texture": "PBR",
+      "status": "downloaded_and_optimized",
+      "downloaded": true,
+      "qualityApproved": false,
+      "qualityNotes": "Integrated into first-person preview; final visual approval pending.",
+      "file": "assets/models/web/house.glb",
+      "bytes": 1407872,
+      "triangles": 17999,
+      "retopologyCost": 5,
+      "webTextures": "WebP, 1K"
+    },
+    {
+      "key": "sleeping-cat",
+      "purpose": "Small cozy detail near the bench",
+      "status": "downloaded_and_optimized",
+      "downloaded": true,
+      "qualityApproved": false,
+      "taskId": "e75085d6-697a-48c6-8047-2303763b7296",
+      "url": "https://studio.tripo3d.ai/workspace/generate/e75085d6-697a-48c6-8047-2303763b7296",
+      "qualityNotes": "Integrated into first-person preview; final visual approval pending.",
+      "file": "assets/models/web/cat.glb",
+      "bytes": 1233352,
+      "triangles": 14000,
+      "retopologyCost": 5,
+      "webTextures": "WebP, 1K",
+      "cost": 55
+    }
+  ],
+  "creditsSpent": 180
+}

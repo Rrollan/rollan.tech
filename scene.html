@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#393d34" />
+  <title>Остановка Роллана — rollan.tech</title>
+  <meta name="description" content="Загляни на мою остановку. Сайты, игры, автоматизация и хорошие знакомства — Роллан Рогожин." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=Caveat:wght@500;700&family=Russo+One&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <main id="experience">
+    <canvas id="world" aria-label="Остановка от первого лица. Выбирай стенки кнопками ниже или оглядывайся, перетаскивая изображение."></canvas>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <header class="hud topbar">
+      <button id="home" class="brand" aria-label="Вернуться к главной стенке"><span class="bus-icon" aria-hidden="true">А</span><span>rollan.tech<small>личная остановка</small></span></button>
+      <div class="place"><span class="sun-dot"></span> ПАВЛОДАР <span class="place-divider">/</span> ТЁПЛЫЙ ВЕЧЕР</div>
+      <a class="contact-link" href="https://t.me/oderefyu" target="_blank" rel="noopener">Написать Роллану <span>↗</span></a>
+    </header>
+    <div class="hud scene-note" id="sceneNote"><span>Остановка № 01</span><h1>Хорошо, что ты заглянул.</h1><p>Нажми на объявление. Или просто осмотрись.</p></div>
+    <div id="hotspots" class="hotspots"></div>
+    <div class="hud look-hint" id="lookHint"><span aria-hidden="true">↔</span> Потяни, чтобы оглядеться</div>
+    <footer class="hud bottom-hud">
+      <div class="view-status"><span id="viewLabel">Доска объявлений</span><button id="nextPoster" class="street-button" hidden>Услуги →</button><button id="streetView" class="street-button">Оглянуться на улицу ↶</button></div>
+      <nav aria-label="Стенки остановки" class="wall-navigation">
+        <button data-view="project" aria-pressed="false"><span class="nav-index">01</span><span>Проекты</span><span class="nav-symbol">↖</span></button>
+        <button data-view="about" aria-pressed="true"><span class="nav-index">02</span><span>Обо мне</span><span class="nav-symbol">↑</span></button>
+        <button data-view="contact" aria-pressed="false"><span class="nav-index">03</span><span>Связь</span><span class="nav-symbol">↗</span></button>
+      </nav>
+      <div class="footer-line"><span>Автобус подождёт. Давай знакомиться.</span><button id="editToggle">Настроить остановку <span>⚙</span></button></div>
+    </footer>
+    <div id="loader" class="loader" role="status"><span class="loader-stop">А</span><h2>Твоя остановка.</h2><p id="loadMessage">Открываем дверь в тёплый вечер…</p><div class="load-track"><span id="loadProgress"></span></div><a href="/">Открыть простую версию</a></div>
+    <div id="error" class="error" hidden><h2>Остановка пока не загрузилась</h2><p>Попробуй обновить страницу или открой простую версию.</p><a href="/">Перейти к объявлениям ↗</a></div>
+  </main>
+  <dialog id="paperDialog" class="paper-dialog"><button class="close-paper" aria-label="Закрыть объявление">×</button><div id="paperContent"></div></dialog>
+  <aside id="editor" class="editor" hidden aria-label="Редактор остановки">
+    <div class="editor-head"><div><span class="eyebrow">ТВОЯ ОСТАНОВКА</span><h2>Мастерская</h2></div><button id="closeEditor" aria-label="Закрыть редактор">×</button></div>
+    <p class="editor-intro">Выбери листок на стене или в списке. Перетаскивай его по стене и меняй всё в панели.</p>
+    <label>Объявление<select id="posterSelect"></select></label>
+    <label>Заголовок<textarea id="posterTitle" rows="2" maxlength="100"></textarea></label>
+    <label>Короткий текст<textarea id="posterText" rows="3" maxlength="280"></textarea></label>
+    <label>Подпись кнопки<input id="posterCta" maxlength="60" /></label>
+    <label>Внешняя ссылка <small>необязательно</small><input id="posterLink" type="url" placeholder="https://…" /></label>
+    <div class="editor-row"><label>Стенка<select id="posterWall"><option value="about">Обо мне</option><option value="project">Проекты</option><option value="contact">Связь</option></select></label><label>Бумага<input id="posterColor" type="color" /></label></div>
+    <label>По горизонтали<input id="posterX" type="range" min="-1.9" max="1.9" step="0.01" /></label>
+    <label>Высота<input id="posterY" type="range" min="0.95" max="2.65" step="0.01" /></label>
+    <div class="editor-row"><label>Размер<input id="posterSize" type="range" min="0.6" max="1.5" step="0.01" /></label><label>Наклон<input id="posterAngle" type="range" min="-12" max="12" step="0.5" /></label></div>
+    <details><summary>Свет и окружение</summary><label>Яркость<input id="exposure" type="range" min="0.5" max="1.8" step="0.05" /></label><label>Тёплый свет<input id="sunPower" type="range" min="0" max="5" step="0.1" /></label></details>
+    <div class="editor-actions"><button id="exportConfig" class="primary">Скачать настройки ↓</button><label class="import-label">Загрузить настройки<input id="importConfig" type="file" accept="application/json,.json" /></label><button id="resetDraft">Сбросить черновик</button></div>
+    <p class="save-note" id="saveNote" role="status">Черновик хранится в этом браузере. Для публикации скачай настройки и замени файл public/scene-config.json в репозитории.</p>
+  </aside>
+  <div id="toast" role="status" class="toast"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

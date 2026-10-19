@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "lighting": {
+    "exposure": 1.05,
+    "sunPower": 2.6
+  },
+  "posters": [
+    {
+      "id": "about",
+      "section": "about",
+      "wall": "about",
+      "title": "РАЗЫСКИВАЕТСЯ\nРАЗРАБОТЧИК",
+      "text": "Откликается на имя Роллан. Делает сайты, игры на Solana и автоматизирует всё, до чего дотянется.",
+      "cta": "Прочитать досье →",
+      "link": "",
+      "color": "#f0e6ce",
+      "x": -0.94,
+      "y": 1.88,
+      "size": 1,
+      "angle": -2
+    },
+    {
+      "id": "services",
+      "section": "services",
+      "wall": "about",
+      "title": "СДЕЛАЮ САЙТ.\nИ НЕ ТОЛЬКО.",
+      "text": "Лендинги и веб-приложения\nБоты и автоматизация\nWeb3 и ИИ-фичи",
+      "cta": "Что умею →",
+      "link": "",
+      "color": "#dce4d9",
+      "x": 0.95,
+      "y": 1.88,
+      "size": 0.92,
+      "angle": 2
+    },
+    {
+      "id": "game",
+      "section": "game",
+      "wall": "project",
+      "title": "IMPERIVM",
+      "text": "Veni. Vidi. Rugi.\nКарточная PvP-арена на Solana.\nКрипта здесь — часть игры.",
+      "cta": "Смотреть проект →",
+      "link": "",
+      "color": "#302a39",
+      "x": 0,
+      "y": 1.88,
+      "size": 1.05,
+      "angle": -2
+    },
+    {
+      "id": "contacts",
+      "section": "contacts",
+      "wall": "contact",
+      "title": "НАШЁЛ?\nЗАБИРАЙ КОНТАКТ.",
+      "text": "Хорошие проекты начинаются\nс простого «привет».\nTelegram: @oderefyu",
+      "cta": "Давай познакомимся →",
+      "link": "",
+      "color": "#efdfab",
+      "x": 0,
+      "y": 1.88,
+      "size": 1,
+      "angle": 2
+    }
+  ]
+}
