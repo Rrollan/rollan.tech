@@ -123,7 +123,12 @@ export async function createWorld(renderer, scene, config, progress) {
   // Continue the border sky/ground beyond the artwork without stretching the buildings.
   const cityUV=cityGeometry.attributes.uv;
   for(let i=0;i<cityUV.count;i++)cityUV.setY(i,(cityUV.getY(i)-.5)*3+.5);
-  const city=new THREE.Mesh(cityGeometry,new THREE.MeshBasicMaterial({map:panorama,side:THREE.BackSide,fog:false,toneMapped:false}));
+  const cityMaterial=new THREE.MeshBasicMaterial({map:panorama,side:THREE.BackSide,fog:false,toneMapped:false,transparent:true,depthWrite:false});
+  cityMaterial.onBeforeCompile=shader=>{
+    shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>',
+      'diffuseColor.a *= 1.0 - smoothstep(0.88, 1.0, vMapUv.y);\n#include <alphatest_fragment>');
+  };
+  const city=new THREE.Mesh(cityGeometry,cityMaterial);
   // The panorama join faces the opaque back wall, outside the visitor's sightline.
   city.position.y=7.2;city.rotation.y=Math.PI;scene.add(city);
   // A tiny overlap covers the distant ground seam, while foreground geometry remains walkable.
