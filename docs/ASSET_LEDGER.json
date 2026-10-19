@@ -21,7 +21,8 @@
       "bytes": 3527012,
       "triangles": 80000,
       "retopologyCost": 5,
-      "webTextures": "WebP, 2K"
+      "webTextures": "WebP, 2K",
+      "usedInCurrentScene": true
     },
     {
       "key": "apartment-block",
@@ -34,12 +35,13 @@
       "status": "downloaded_and_optimized",
       "downloaded": true,
       "qualityApproved": false,
-      "qualityNotes": "Integrated into first-person preview; final visual approval pending.",
+      "qualityNotes": "Retained source asset; current scene uses an illustrated panorama instead.",
       "file": "assets/models/web/house.glb",
       "bytes": 1407872,
       "triangles": 17999,
       "retopologyCost": 5,
-      "webTextures": "WebP, 1K"
+      "webTextures": "WebP, 1K",
+      "usedInCurrentScene": false
     },
     {
       "key": "sleeping-cat",
@@ -49,14 +51,22 @@
       "qualityApproved": false,
       "taskId": "e75085d6-697a-48c6-8047-2303763b7296",
       "url": "https://studio.tripo3d.ai/workspace/generate/e75085d6-697a-48c6-8047-2303763b7296",
-      "qualityNotes": "Integrated into first-person preview; final visual approval pending.",
+      "qualityNotes": "Support height sampled from four seat points; browser-verified on the bench. Final owner approval pending.",
       "file": "assets/models/web/cat.glb",
       "bytes": 1233352,
       "triangles": 14000,
       "retopologyCost": 5,
       "webTextures": "WebP, 1K",
-      "cost": 55
+      "cost": 55,
+      "usedInCurrentScene": true
     }
   ],
-  "creditsSpent": 180
+  "creditsSpent": 180,
+  "environment": {
+    "provider": "Built-in image_gen.imagegen",
+    "file": "assets/environment/pavlodar-evening-v2.webp",
+    "bytes": 581526,
+    "promptRecord": "docs/ART_DIRECTION.md",
+    "usedInCurrentScene": true
+  }
 }
