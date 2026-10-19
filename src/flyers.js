@@ -109,6 +109,14 @@ function conformPage(group,geometry,shelter,width,height) {
     base[i]=Math.max(THREE.MathUtils.lerp(lower,upper,ty),surface)+bend+.025;
     positions.setZ(i,base[i]);
   }
+  // Paper bridges the deepest cracks and raised scraps. A triangle interpolated
+  // between ray samples must not sink back through a plaster peak between them.
+  const front=Math.max(...base)+.008;
+  for(let i=0;i<positions.count;i++){
+    const edge=1-(positions.getY(i)/height+.5);
+    base[i]=front+Math.pow(edge,3)*.006;
+    positions.setZ(i,base[i]);
+  }
   geometry.computeVertexNormals();positions.needsUpdate=true;
   return base;
 }
