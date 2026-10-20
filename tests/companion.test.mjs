@@ -31,3 +31,13 @@ test('petting preserves interleaved mesh data, keeps contact with the seat and r
   motion.reset();
   for(let i=0;i<positions.count;i++)assert.deepEqual(new THREE.Vector3().fromBufferAttribute(positions,i).toArray(),Array.from(data.slice(i*8,i*8+3)));
 });
+
+test('petting contact sweeps a short forehead arc and follows the cat in world space',()=>{
+  const cat=new THREE.Group();cat.position.set(1.33,.79,-.72);cat.rotation.y=-.55;
+  const motion=new CatMotion(cat);
+  const start=motion.contactPoint(0,0),middle=motion.contactPoint(.5,1),end=motion.contactPoint(1,0);
+  assert.ok(start.distanceTo(end)<.08,'A gentle stroke stays within the head width');
+  assert.ok(middle.distanceTo(start)<.06&&middle.distanceTo(end)<.06,'The stroke curves softly across the forehead');
+  cat.position.x+=2;
+  assert.ok(Math.abs(motion.contactPoint(.5,1).x-middle.x-2)<1e-6,'Contact follows camera/world transforms');
+});

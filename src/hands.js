@@ -104,17 +104,25 @@ export class HandLayer {
     this.draw();
   }
 
-  renderPet(screen,progress,reduced) {
+  renderPet(screen,gesture) {
     this.paper.visible=false;for(const shadow of this.contactShadows)shadow.visible=false;
     this.hands[0].object.visible=false;
-    const hand=this.hands[1];hand.object.visible=true;
-    const reach=reduced?1:smooth(progress/.23)*(1-smooth((progress-.78)/.22));
-    const stroke=reduced?0:Math.sin(Math.min(1,Math.max(0,(progress-.23)/.55))*Math.PI*4);
+    const hand=this.hands[1];
+    const opacity=smooth(gesture.progress/.055)*(1-smooth((gesture.progress-.82)/.18));
+    hand.object.visible=opacity>.005;
     hand.object.position.set(0,0,0);hand.object.scale.setScalar(.72);
-    hand.object.rotation.set(-.72,-.5,-1.08);hand.grip(-.35);hand.object.updateMatrixWorld(true);
-    hand.object.getObjectByName('middle-3').getWorldPosition(contact);
-    const target=this.worldPoint({x:screen.x+stroke*16,y:screen.y+stroke*9},.02);
-    target.x+=(1-reach)*.25;target.y-=(1-reach)*.42;
-    hand.object.position.copy(target).sub(contact);this.draw();
+    hand.object.rotation.set(-.72,-.5,-1.08);hand.grip(.24);hand.object.updateMatrixWorld(true);
+    hand.petContact.getWorldPosition(contact);
+    const approachX=Math.min(120,innerWidth*.18),approachY=Math.min(150,innerHeight*.22);
+    const target=this.worldPoint({
+      x:screen.x+(1-gesture.reach)*approachX,
+      y:screen.y+(1-gesture.reach)*approachY
+    },.025);
+    hand.object.position.copy(target).sub(contact);
+    hand.object.traverse(mesh=>{if(mesh.isSkinnedMesh)mesh.material.opacity=opacity;});
+    this.canvas.dataset.petContact=`${screen.x.toFixed(1)},${screen.y.toFixed(1)}`;
+    this.canvas.dataset.petReach=gesture.reach.toFixed(3);
+    this.canvas.dataset.petStroke=gesture.stroke.toFixed(3);
+    this.draw();
   }
 }

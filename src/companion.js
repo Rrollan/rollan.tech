@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import { petGesture } from './pet-gesture.js';
 
 const smooth = value => { const t=THREE.MathUtils.clamp(value,0,1);return t*t*(3-2*t); };
 const vertex=new THREE.Vector3(),moved=new THREE.Vector3();
+const orientation=new THREE.Quaternion(),origin=new THREE.Vector3();
 
 export class CatMotion {
   constructor(cat) {
@@ -24,21 +26,21 @@ export class CatMotion {
       this.parts.push({mesh,positions,base,physicalPositions,headWeights,earWeights,inverse:matrix.clone().invert()});
     });
   }
-  pose(progress,reduced=false) {
-    const response=smooth(progress/.25)*(1-smooth((progress-.7)/.3));
-    const stroke=reduced?0:Math.sin(progress*Math.PI*5);
-    const tilt=response*(-.11+stroke*.025),cos=Math.cos(tilt),sin=Math.sin(tilt);
-    const earFlick=reduced?0:response*Math.sin(progress*Math.PI*8)*.004;
+  pose(gesture,reduced=false) {
+    if(typeof gesture==='number')gesture=petGesture(gesture,reduced);
+    const response=gesture.contact;
+    const tilt=response*(-.025+(gesture.stroke-.5)*.012),cos=Math.cos(tilt),sin=Math.sin(tilt);
+    const earFlick=reduced?0:.003*smooth((gesture.progress-.74)/.035)*(1-smooth((gesture.progress-.84)/.06));
     for(const part of this.parts) {
       for(let i=0;i<part.positions.count;i++) {
         vertex.fromArray(part.physicalPositions,i*3);
         const head=part.headWeights[i];
         moved.copy(vertex);
         const x=vertex.x+.035,y=vertex.y-.10;
-        moved.x=-.035+x*cos-y*sin;moved.y=.10+x*sin+y*cos+.011*response;
-        moved.z+=response*.007;
+        moved.x=-.035+x*cos-y*sin;moved.y=.10+x*sin+y*cos+.003*response;
+        moved.z+=response*.002;
         vertex.lerp(moved,head);
-        vertex.y+=Math.max(0,vertex.y-.025)*.018*response;
+        vertex.y+=Math.max(0,vertex.y-.025)*.006*response;
         vertex.z+=part.earWeights[i]*earFlick;
         vertex.applyMatrix4(part.inverse);part.positions.setXYZ(i,vertex.x,vertex.y,vertex.z);
       }
@@ -51,8 +53,18 @@ export class CatMotion {
       part.positions.needsUpdate=true;
     }
   }
-  headPoint() {
-    return new THREE.Vector3(-.07,.29,.025).applyAxisAngle(new THREE.Vector3(0,1,0),this.cat.rotation.y).add(this.cat.position);
+  contactPoint(stroke,pressure) {
+    // This short path lies across the forehead, rather than sliding in screen space.
+    const arch=4*stroke*(1-stroke);
+    const point=new THREE.Vector3(-.105+.07*stroke,.326+.008*arch,.055+.004*arch);
+    point.y+=.003*pressure;
+    const response=pressure,tilt=response*(-.025+(stroke-.5)*.012),cos=Math.cos(tilt),sin=Math.sin(tilt);
+    const x=point.x+.035,y=point.y-.10;
+    const movedPoint=new THREE.Vector3(-.035+x*cos-y*sin,.10+x*sin+y*cos+.003*response,point.z+.002*response);
+    const weight=(1-smooth((point.x+.10)/.11))*smooth((point.y-.025)/.075);
+    point.lerp(movedPoint,weight);
+    this.cat.getWorldQuaternion(orientation);this.cat.getWorldPosition(origin);
+    return point.applyQuaternion(orientation).add(origin);
   }
 }
 
@@ -81,7 +93,7 @@ export class Companion {
   }
   purr() {
     if(!this.audio)return;
-    const context=this.audio,duration=2.6;
+    const context=this.audio,duration=4.4;
     const buffer=context.createBuffer(1,context.sampleRate*duration,context.sampleRate),data=buffer.getChannelData(0);
     for(let i=0;i<data.length;i++) {
       const t=i/context.sampleRate;
@@ -96,11 +108,12 @@ export class Companion {
   }
   update(time) {
     if(!this.active||this.state!=='petting')return false;
-    const progress=Math.min(1,(time-this.started)/(this.reduced.matches?1000:3200));
-    this.host.dataset.catPetStage=progress<.24?'reaching':progress<.78?'stroking':'withdrawing';
-    this.motion.pose(progress,this.reduced.matches);
-    const position=this.motion.headPoint().project(this.camera);
-    this.reader.layer.renderPet({x:(position.x*.5+.5)*innerWidth,y:(-.5*position.y+.5)*innerHeight},progress,this.reduced.matches);
+    const progress=Math.min(1,(time-this.started)/(this.reduced.matches?1900:4300));
+    const gesture=petGesture(progress,this.reduced.matches);
+    this.host.dataset.catPetStage=gesture.stage;
+    this.motion.pose(gesture,this.reduced.matches);
+    const position=this.motion.contactPoint(gesture.stroke,gesture.pressure).project(this.camera);
+    this.reader.layer.renderPet({x:(position.x*.5+.5)*innerWidth,y:(-.5*position.y+.5)*innerHeight},gesture);
     if(progress===1)this.finish();
     return true;
   }

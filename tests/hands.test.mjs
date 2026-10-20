@@ -26,6 +26,7 @@ test('the Tripo hand stays within its web geometry budget and animates through i
     const weights=mesh.geometry.getAttribute('skinWeight');
     for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<1e-5);
     const tip=hand.object.getObjectByName('index-3');
+    assert.ok(hand.petContact);
     const open=tip.getWorldPosition(new THREE.Vector3());
     assert.ok(hand.object.getObjectByName('wrist').getWorldPosition(new THREE.Vector3()).length()<1e-6);
     hand.grip(1);hand.object.updateMatrixWorld(true);
