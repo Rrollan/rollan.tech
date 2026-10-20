@@ -113,7 +113,7 @@ export class HandLayer {
     hand.object.position.set(0,0,0);hand.object.scale.setScalar(.62);
     hand.object.rotation.set(-.18,-.15,-1.08);hand.grip(-.12);hand.object.updateMatrixWorld(true);
     hand.petContact.getWorldPosition(contact);
-    const approachX=Math.min(115,innerWidth*.17),approachY=Math.min(220,innerHeight*.32);
+    const approachX=Math.min(125,innerWidth*.18),approachY=Math.min(285,innerHeight*.42);
     const target=this.worldPoint({
       x:screen.x+(1-gesture.reach)*approachX,
       y:screen.y+(1-gesture.reach)*approachY
