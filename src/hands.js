@@ -28,10 +28,16 @@ export class HandLayer {
     this.camera = new THREE.PerspectiveCamera(50, 1, .01, 10); this.camera.position.z = 1.3;
     const white = new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1);
     white.colorSpace=THREE.SRGBColorSpace; white.needsUpdate=true;
-    this.paperMaterial = new THREE.MeshBasicMaterial({ map:white, side:THREE.DoubleSide, alphaTest:.45, toneMapped:false });
-    this.paper = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 12, 16), this.paperMaterial);
+    this.paperMaterial = new THREE.MeshStandardMaterial({ map:white, side:THREE.DoubleSide, alphaTest:.45, roughness:1, metalness:0 });
+    this.paper = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 24, 32), this.paperMaterial);
     this.paper.renderOrder = -1; this.scene.add(this.paper);
-    for (const hand of hands) this.scene.add(hand.object);
+    for (const hand of hands) {
+      hand.object.traverse(mesh=>{
+        if(!mesh.isSkinnedMesh)return;
+        mesh.material=mesh.material.clone();mesh.material.transparent=true;mesh.material.depthWrite=false;mesh.material.needsUpdate=true;
+      });
+      this.scene.add(hand.object);
+    }
     const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=64;
     const context=shadowCanvas.getContext('2d'),gradient=context.createRadialGradient(32,32,1,32,32,32);
     gradient.addColorStop(0,'#38271b4a');gradient.addColorStop(1,'#38271b00');context.fillStyle=gradient;context.fillRect(0,0,64,64);
@@ -57,32 +63,42 @@ export class HandLayer {
   render(quad, {phase,progress,texture,returnPose}) {
     this.paper.visible=true;
     const positions=this.paper.geometry.attributes.position;
-    for(let row=0;row<=16;row++)for(let col=0;col<=12;col++) {
-      const screen=lerpPoint(lerpPoint(quad[0],quad[1],col/12),lerpPoint(quad[2],quad[3],col/12),row/16);
-      point.copy(this.worldPoint(screen)); positions.setXYZ(row*13+col,point.x,point.y,0);
+    const flex=(phase==='taking'||phase==='placing')?Math.sin(progress*Math.PI):0;
+    for(let row=0;row<=32;row++)for(let col=0;col<=24;col++) {
+      const u=col/24,v=row/32;
+      const screen=lerpPoint(lerpPoint(quad[0],quad[1],u),lerpPoint(quad[2],quad[3],u),v);
+      point.copy(this.worldPoint(screen));
+      // A sheet flexes under its own weight as it leaves the wall, then settles flat.
+      point.z=.018*flex*Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
+      positions.setXYZ(row*25+col,point.x,point.y,point.z);
     }
-    positions.needsUpdate=true;this.paper.geometry.computeBoundingSphere();
+    positions.needsUpdate=true;this.paper.geometry.computeVertexNormals();this.paper.geometry.computeBoundingSphere();
     if(this.paperMaterial.map!==texture){this.paperMaterial.map=texture;this.paperMaterial.needsUpdate=true;}
     this.paperMaterial.colorWrite=phase!=='reading';
     const release=smooth((progress-.72)/.28);
-    const reach=phase==='taking'?smooth(progress/.24):phase==='placing'?(returnPose?.reach??1)*(1-release):1;
-    const grip=phase==='taking'?smooth((progress-.11)/.19):phase==='placing'?(returnPose?.grip??1)*(1-release):1;
+    const reach=phase==='taking'?smooth(progress/.27):phase==='placing'?(returnPose?.reach??1)*(1-release):1;
+    const grip=phase==='taking'?smooth((progress-.22)/.31)*.68:phase==='placing'?(returnPose?.grip??.68)*(1-release):.68;
     this.pose={reach,grip};
     const pageWidth=Math.hypot(quad[1].x-quad[0].x,quad[1].y-quad[0].y)*this.pixel;
     const size=THREE.MathUtils.clamp(pageWidth/.74,.58,.94);
     for(let i=0;i<this.hands.length;i++) {
       const hand=this.hands[i],side=i===0?-1:1;
-      hand.object.visible=true;
+      const gripVisible=i===1&&(phase==='taking'||phase==='placing');
+      const appear=phase==='taking'?smooth(progress/.12):phase==='placing'?smooth(progress/.18):0;
+      const disappear=smooth((progress-.84)/.16);
+      const opacity=gripVisible?appear*(1-disappear):0;
+      hand.object.visible=gripVisible&&opacity>.005;
       const edge=lerpPoint(quad[i],quad[i+2],i===0?.75:.79);
       const inner=lerpPoint(edge,lerpPoint(quad[1-i],quad[3-i],i===0?.75:.79),.018);
       const target=this.worldPoint(inner,.008);
       target.x+=side*(1-reach)*.12;target.y-=(1-reach)*.4;
-      hand.object.scale.set(side*size,size,size);
-      hand.object.rotation.set(-.05+(1-reach)*.28,side*.83,side*-.12);
+      hand.object.scale.set(side*size*.82,size*.82,size*.82);
+      hand.object.rotation.set(-.08+(1-reach)*.22,side*.88,side*-.18);
       hand.object.position.set(0,0,0);hand.grip(grip);hand.object.updateMatrixWorld(true);
       hand.contact.getWorldPosition(contact);
       hand.object.position.copy(target).sub(contact);
-      this.contactShadows[i].position.copy(this.worldPoint(inner,.001));this.contactShadows[i].visible=reach>.94;
+      hand.object.traverse(mesh=>{if(mesh.isSkinnedMesh)mesh.material.opacity=opacity;});
+      this.contactShadows[i].position.copy(this.worldPoint(inner,.001));this.contactShadows[i].visible=gripVisible&&reach>.94&&opacity>.5;
       this.canvas.dataset[`contact${i}`]=`${inner.x.toFixed(1)},${inner.y.toFixed(1)}`;
     }
     this.draw();

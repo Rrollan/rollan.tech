@@ -39,10 +39,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid #b5864d; outline-offs
 .paper-dialog[open] { display: grid; place-items: center; }
 .paper-dialog::backdrop { background: transparent; transition: background .3s, backdrop-filter .3s; }
 .paper-dialog[data-phase=reading]::backdrop { background: #19211335; backdrop-filter: blur(1.5px); }
-.held-paper { position: relative; width: min(530px,calc(78svh * .725806),calc(100vw - 76px)); aspect-ratio: 900 / 1240; transform-origin: center; }
-.held-paper::before { content: ''; position: absolute; inset: 0; background-image: var(--paper-front); background-size: 100% 100%; filter: drop-shadow(0 12px 24px #18201650); opacity: 0; }
+.held-paper { position: relative; width: min(470px,calc(75svh * .725806),calc(100vw - 56px)); aspect-ratio: 900 / 1240; transform-origin: 50% 72%; transition: transform .38s cubic-bezier(.2,.7,.25,1); }
+.held-paper::before { content: ''; position: absolute; inset: 0; background-image: var(--paper-front); background-size: 100% 100%; filter: drop-shadow(0 18px 24px #15140e72) drop-shadow(0 2px 3px #15140e66); opacity: 0; }
 .paper-sheet { position: absolute; inset: 0; clip-path: inset(.8% .9% .8%); overflow-y: auto; overflow-x: hidden; scrollbar-width: none; outline: none; opacity: 0; overscroll-behavior: contain; }
 .paper-dialog:is([data-phase=reading],[data-phase=resetting]) .paper-sheet,.paper-dialog:is([data-phase=reading],[data-phase=resetting]) .held-paper::before { opacity: 1; }
+.paper-dialog[data-phase=reading] .held-paper { transform: perspective(1400px) rotateX(.8deg) rotateY(-.45deg) rotateZ(-.22deg) translateY(-2px); }
 .paper-sheet::-webkit-scrollbar { display: none; }
 .paper-artwork { position: relative; width: 100%; }
 .paper-artwork img { display: block; width: 100%; height: auto; user-select: none; }
@@ -61,7 +62,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #b5864d; outline-offs
 @media (max-width:700px) {
   .guide { padding: 12px 14px; bottom: max(20px,env(safe-area-inset-bottom)); }
   .guide-controls { font-size: 10px; gap: 10px; }.guide-controls small { font-size: 9px; }.guide-title { font-size: 11px; }
-   .held-paper { width: min(calc(100vw - 40px),calc(77svh * .725806)); }
+   .held-paper { width: min(calc(100vw - 40px),calc(74svh * .725806)); }
 
   .keyboard-links { max-width: 95vw; flex-wrap: wrap; justify-content: center; }
 }
