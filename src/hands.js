@@ -114,10 +114,11 @@ export class HandLayer {
     hand.object.rotation.set(-.18,-.15,-1.08);hand.grip(-.12);hand.object.updateMatrixWorld(true);
     hand.petContact.getWorldPosition(contact);
     const approachX=Math.min(125,innerWidth*.18),approachY=Math.min(285,innerHeight*.42);
+    const lift=gesture.withdraw;
     const target=this.worldPoint({
-      x:screen.x+(1-gesture.reach)*approachX,
-      y:screen.y+(1-gesture.reach)*approachY
-    },.025);
+      x:screen.x+(1-gesture.reach)*approachX+lift*10,
+      y:screen.y+(1-gesture.reach)*approachY+lift*22
+    },.025+lift*.08);
     hand.object.position.copy(target).sub(contact);
     hand.object.traverse(mesh=>{if(mesh.isSkinnedMesh)mesh.material.opacity=opacity;});
     this.canvas.dataset.petContact=`${screen.x.toFixed(1)},${screen.y.toFixed(1)}`;

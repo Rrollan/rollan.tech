@@ -56,7 +56,7 @@ export class CatMotion {
   contactPoint(stroke,pressure) {
     // This short path lies across the forehead, rather than sliding in screen space.
     const arch=4*stroke*(1-stroke);
-    const point=new THREE.Vector3(-.105+.07*stroke,.326+.008*arch,.055+.004*arch);
+    const point=new THREE.Vector3(-.105+.07*stroke,.316+.008*arch,.055+.004*arch);
     point.y+=.003*pressure;
     const response=pressure,tilt=response*(-.025+(stroke-.5)*.012),cos=Math.cos(tilt),sin=Math.sin(tilt);
     const x=point.x+.035,y=point.y-.10;
