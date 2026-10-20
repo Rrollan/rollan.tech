@@ -111,7 +111,7 @@ export class HandLayer {
     const opacity=smooth(gesture.progress/.055)*(1-smooth((gesture.progress-.82)/.18));
     hand.object.visible=opacity>.005;
     hand.object.position.set(0,0,0);hand.object.scale.setScalar(.72);
-    hand.object.rotation.set(-.72,-.5,-1.08);hand.grip(.24);hand.object.updateMatrixWorld(true);
+    hand.object.rotation.set(-.18,-.15,-1.28);hand.grip(-.12);hand.object.updateMatrixWorld(true);
     hand.petContact.getWorldPosition(contact);
     const approachX=Math.min(120,innerWidth*.18),approachY=Math.min(150,innerHeight*.22);
     const target=this.worldPoint({

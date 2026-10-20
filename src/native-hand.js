@@ -98,8 +98,8 @@ export function buildNativeHand(source, side) {
   fingers.find(finger=>finger.chain.name==='thumb').bones[3].add(contact);
   contact.position.set(0,-.006,-.003);
   const petContact = new THREE.Object3D();
-  petContact.name = 'index-pad-contact';
-  fingers.find(finger=>finger.chain.name==='index').bones[3].add(petContact);
+  petContact.name = 'middle-pad-contact';
+  fingers.find(finger=>finger.chain.name==='middle').bones[3].add(petContact);
   petContact.position.set(0,-.004,-.004);
   return {object,grip,skeleton,contact,petContact};
 }
